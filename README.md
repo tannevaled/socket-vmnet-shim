@@ -72,12 +72,72 @@ Tested on **macOS Tahoe 26.5** (Apple Silicon, M-series, Tart 2.32.1, Lima 1.2.1
 ## Prerequisites
 
 - **[Tart](https://github.com/cirruslabs/tart)** — `brew install cirruslabs/cli/tart` or [via pkgx](https://pkgx.dev/pkgs/tart.run): `pkgx +tart.run -- tart …`
-- **[`socket_vmnet`](https://github.com/lima-vm/socket_vmnet)** installed at `/opt/socket_vmnet/bin/socket_vmnet` (root-owned, see [Lima's install instructions](https://github.com/lima-vm/socket_vmnet?tab=readme-ov-file#install)). A pkgx pantry recipe is proposed in [pkgxdev/pantry#13093](https://github.com/pkgxdev/pantry/pull/13093).
+- **[`socket_vmnet`](https://github.com/lima-vm/socket_vmnet)** installed **at `/opt/socket_vmnet/bin/socket_vmnet`** (root-owned). See [Installing socket_vmnet at the right path](#installing-socket_vmnet-at-the-right-path) below.
 - A **running `socket_vmnet` daemon**. Several ways to get one:
   - Start any Lima VM configured with `networks: [{lima: shared}]` — Lima starts the daemon on demand.
   - Or run it system-wide via a LaunchDaemon (recommended for a Tart-only setup).
   - Or run it manually with the same flags Lima would use (see [`socket_vmnet`'s README](https://github.com/lima-vm/socket_vmnet#usage)).
 - **A Rust toolchain** to build, e.g. via [pkgx](https://pkgx.sh/) (`pkgx +rust-lang.org cargo …`), [rustup](https://rustup.rs/), or `brew install rust`.
+
+### Installing socket_vmnet at the right path
+
+The `socket_vmnet` daemon must live at `/opt/socket_vmnet/bin/socket_vmnet` even though most package managers install it elsewhere. The fixed path is a Lima security requirement (the `/etc/sudoers.d/lima` rules name that exact path; sudo refuses anything user-writable) and our `LaunchDaemon` plist (if you use one) references it too.
+
+The one-liner (auto-detects brew, pkgm, or `$PATH`):
+
+```sh
+./scripts/install-socket-vmnet.sh
+# or pass an explicit source:
+./scripts/install-socket-vmnet.sh /path/to/your/socket_vmnet
+```
+
+What it does under the hood — same as if you ran it by hand:
+
+**Homebrew**
+
+```sh
+brew install socket_vmnet
+# The keg-only formula leaves the binary under /opt/homebrew/opt/socket_vmnet/bin/.
+sudo install -m 0755 -o root -g wheel -d /opt/socket_vmnet/bin
+sudo install -m 0755 -o root -g wheel \
+  /opt/homebrew/opt/socket_vmnet/bin/socket_vmnet \
+  /opt/socket_vmnet/bin/socket_vmnet
+sudo install -m 0755 -o root -g wheel \
+  /opt/homebrew/opt/socket_vmnet/bin/socket_vmnet_client \
+  /opt/socket_vmnet/bin/socket_vmnet_client
+```
+
+**pkgx (once [pkgxdev/pantry#13093](https://github.com/pkgxdev/pantry/pull/13093) is merged)**
+
+```sh
+pkgm install github.com/lima-vm/socket_vmnet
+# pkgm symlinks the binary to /usr/local/bin/socket_vmnet
+sudo install -m 0755 -o root -g wheel -d /opt/socket_vmnet/bin
+sudo install -m 0755 -o root -g wheel \
+  /usr/local/bin/socket_vmnet /opt/socket_vmnet/bin/socket_vmnet
+sudo install -m 0755 -o root -g wheel \
+  /usr/local/bin/socket_vmnet_client /opt/socket_vmnet/bin/socket_vmnet_client
+```
+
+**Manual / from source**
+
+The upstream Makefile's default `make install.bin` target already installs to `/opt/socket_vmnet/` (its `PREFIX ?= /opt/socket_vmnet`):
+
+```sh
+git clone https://github.com/lima-vm/socket_vmnet
+cd socket_vmnet
+make
+sudo make install.bin
+# Yields /opt/socket_vmnet/bin/{socket_vmnet,socket_vmnet_client}, root-owned.
+```
+
+After install, also lay down Lima's sudoers entries (they grant the `everyone` group permission to start/stop the daemon without a password — this is what makes `socket_vmnet` usable without per-VM sudo prompts):
+
+```sh
+limactl sudoers > /tmp/lima.sudoers
+sudo install -o root -m 0440 /tmp/lima.sudoers /etc/sudoers.d/lima
+sudo chmod 0644 /etc/sudoers.d/lima   # so Lima/our tasks can read it for validation
+```
 
 ## Build
 
