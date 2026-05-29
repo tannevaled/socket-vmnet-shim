@@ -71,20 +71,20 @@ Tested on **macOS Tahoe 26.5** (Apple Silicon, M-series, Tart 2.32.1, Lima 1.2.1
 
 ## Prerequisites
 
-- **[Tart](https://github.com/cirruslabs/tart)** — `brew install cirruslabs/cli/tart`
-- **[`socket_vmnet`](https://github.com/lima-vm/socket_vmnet)** installed at `/opt/socket_vmnet/bin/socket_vmnet` (root-owned, see [Lima's install instructions](https://github.com/lima-vm/socket_vmnet?tab=readme-ov-file#install))
+- **[Tart](https://github.com/cirruslabs/tart)** — `brew install cirruslabs/cli/tart` or [via pkgx](https://pkgx.dev/pkgs/tart.run): `pkgx +tart.run -- tart …`
+- **[`socket_vmnet`](https://github.com/lima-vm/socket_vmnet)** installed at `/opt/socket_vmnet/bin/socket_vmnet` (root-owned, see [Lima's install instructions](https://github.com/lima-vm/socket_vmnet?tab=readme-ov-file#install)). A pkgx pantry recipe is proposed in [pkgxdev/pantry#13093](https://github.com/pkgxdev/pantry/pull/13093).
 - A **running `socket_vmnet` daemon**. Several ways to get one:
   - Start any Lima VM configured with `networks: [{lima: shared}]` — Lima starts the daemon on demand.
-  - Or run it system-wide via a LaunchDaemon (recommended for a Tart-only setup; example plist in [`launchd/`](launchd/)).
+  - Or run it system-wide via a LaunchDaemon (recommended for a Tart-only setup).
   - Or run it manually with the same flags Lima would use (see [`socket_vmnet`'s README](https://github.com/lima-vm/socket_vmnet#usage)).
-- **[Rust toolchain](https://rustup.rs/)** to build (`brew install rust` works for a one-shot build).
+- **A Rust toolchain** to build, e.g. via [pkgx](https://pkgx.sh/) (`pkgx +rust-lang.org cargo …`), [rustup](https://rustup.rs/), or `brew install rust`.
 
 ## Build
 
 ```sh
 git clone https://github.com/tannevaled/socket-vmnet-shim
 cd socket-vmnet-shim
-cargo build --release
+cargo build --release            # or: pkgx +rust-lang.org cargo build --release
 ```
 
 Output: `target/release/softnet` (~300 KB, statically linked against `std` only — no external crates).
