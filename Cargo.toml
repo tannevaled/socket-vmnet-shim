@@ -1,0 +1,22 @@
+[package]
+name = "socket-vmnet-shim"
+version = "0.1.0"
+edition = "2021"
+authors = ["David Delavennat <tannevaled@users.noreply.github.com>"]
+description = "Drop-in replacement for cirruslabs/softnet that bridges Tart VMs to lima-vm/socket_vmnet, enabling Tart↔Tart and Tart↔Lima VM connectivity on macOS Sequoia/Tahoe."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/tannevaled/socket-vmnet-shim"
+readme = "README.md"
+keywords = ["macos", "tart", "lima", "vmnet", "networking"]
+categories = ["network-programming", "virtualization"]
+
+[[bin]]
+name = "softnet"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
